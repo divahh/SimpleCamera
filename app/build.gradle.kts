@@ -51,6 +51,8 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.12.4")
     // Optional - Integration with ViewModels
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
+    implementation("androidx.core:core-splashscreen:1.2.0")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

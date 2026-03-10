@@ -1,9 +1,10 @@
-package com.example.camera.component
+package com.example.camera.ui.component
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
@@ -20,7 +21,11 @@ fun ButtonTiny(
     Button(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
-        modifier = modifier.padding(12.dp)
+        modifier = modifier.padding(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        )
     ) {
         Text(
             text = text,

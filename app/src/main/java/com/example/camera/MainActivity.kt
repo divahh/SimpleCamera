@@ -1,10 +1,8 @@
 package com.example.camera
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
@@ -14,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -35,12 +35,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import coil.compose.AsyncImage
-import com.example.camera.component.ButtonTiny
-import java.io.ByteArrayOutputStream
+import com.example.camera.ui.component.ButtonTiny
+import com.example.camera.ui.theme.CameraTheme
 
 class MainActivity: ComponentActivity() {
-    private var imageBytes: ByteArray? = null
     private val cameraImageState = mutableStateOf<Bitmap?>(null)
     private val galleryUriState = mutableStateOf<Uri?>(null)
 
@@ -71,93 +71,96 @@ class MainActivity: ComponentActivity() {
         }
     }
 
-    fun compressImage(context: Context, uri: Uri, quality: Int = 80): ByteArray? {
-        return try {
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                val originalBitmap = BitmapFactory.decodeStream(inputStream)
-                val outputStream = ByteArrayOutputStream()
-                originalBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
-                outputStream.toByteArray()
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+
         super.onCreate(savedInstanceState)
         setContent {
-            val cameraBitmap by cameraImageState
-            val galleryUri by galleryUriState
+            CameraTheme {
+                val galleryUri by galleryUriState
+                val cameraBitmap by cameraImageState
 
-            val imagePickerLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.GetContent()
-            ) { uri: Uri? ->
-                uri?.let {
-                    imageBytes = compressImage(this@MainActivity, it)
-                    galleryUriState.value = it
-                    cameraImageState.value = null
+                val imagePickerLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.GetContent()
+                ) { uri: Uri? ->
+                    uri?.let {
+                        galleryUriState.value = it
+                        cameraImageState.value = null
+                    }
                 }
-            }
 
-            Scaffold {
-                Surface(
-                    modifier = Modifier
-                        .padding(start = 12.dp, top = 20.dp, end = 12.dp)
+                splashScreen.setOnExitAnimationListener { splashScreenView ->
+                    splashScreenView.iconView
+                        .animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .alpha(0f)
+                        .setDuration(600)
+                        .withEndAction { splashScreenView.remove() }
+                        .start()
+                }
+
+                Scaffold(
+                    containerColor = MaterialTheme.colorScheme.background
                 ) {
-                    Column {
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .fillMaxWidth()
-                                .aspectRatio(9f / 16f)
-                                .drawBehind {
-                                    val strokeWidth = 2.dp.toPx()
-                                    val dash = PathEffect.dashPathEffect(floatArrayOf(10.dp.toPx(), 6.dp.toPx()), 0f)
+                    Surface(
+                        modifier = Modifier
+                            .padding(start = 12.dp, top = 20.dp, end = 12.dp)
+                    ) {
+                        Column {
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 8.dp)
+                                    .fillMaxWidth()
+                                    .aspectRatio(9f / 16f)
+                                    .drawBehind {
+                                        val strokeWidth = 2.dp.toPx()
+                                        val dash = PathEffect.dashPathEffect(floatArrayOf(10.dp.toPx(), 6.dp.toPx()), 0f)
 
-                                    drawRect(
-                                        color = Color.Gray,
-                                        size = size,
-                                        style = Stroke(width = strokeWidth, pathEffect = dash)
+                                        drawRect(
+                                            color = Color.Gray,
+                                            size = size,
+                                            style = Stroke(width = strokeWidth, pathEffect = dash)
+                                        )
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                when {
+                                    cameraBitmap != null -> AsyncImage(
+                                        model = cameraBitmap,
+                                        contentDescription = "Camera Image",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
                                     )
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            when {
-                                cameraBitmap != null -> AsyncImage(
-                                    model = cameraBitmap,
-                                    contentDescription = "Camera Image",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
+                                    galleryUri != null -> AsyncImage(
+                                        model = galleryUri,
+                                        contentDescription = "Gallery Image",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    else -> Icon(
+                                        painter = painterResource(id = R.drawable.ic_add_photo),
+                                        contentDescription = "Add New Image",
+                                        tint = Color.Gray
+                                    )
+                                }
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .padding(top = 8.dp)
+                                    .align(Alignment.CenterHorizontally)
+                            ) {
+                                ButtonTiny(
+                                    onClick = { cameraIntent() },
+                                    text = "Open Camera"
                                 )
-                                galleryUri != null -> AsyncImage(
-                                    model = galleryUri,
-                                    contentDescription = "Gallery Image",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                                else -> Icon(
-                                    painter = painterResource(id = R.drawable.ic_add_photo),
-                                    contentDescription = "Add New Image",
-                                    tint = Color.Gray
+                                ButtonTiny(
+                                    onClick = { imagePickerLauncher.launch("image/*") },
+                                    text = "Open Gallery"
                                 )
                             }
-                        }
-                        Row(
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .align(Alignment.CenterHorizontally)
-                        ) {
-                            ButtonTiny(
-                                onClick = { cameraIntent() },
-                                text = "Open Camera"
-                            )
-                            ButtonTiny(
-                                onClick = { imagePickerLauncher.launch("image/*") },
-                                text = "Open Gallery"
-                            )
                         }
                     }
                 }
