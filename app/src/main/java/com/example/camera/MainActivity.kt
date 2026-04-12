@@ -46,9 +46,6 @@ class MainActivity : ComponentActivity() {
     private val cameraImageState = mutableStateOf<Bitmap?>(null)
     private val galleryUriState = mutableStateOf<Uri?>(null)
 
-    // =========================
-    // HELPER FUNCTIONS
-    // =========================
 
     private fun getDummyBitmap(): Bitmap =
         BitmapFactory.decodeResource(resources, R.drawable.qr)
@@ -74,6 +71,19 @@ class MainActivity : ComponentActivity() {
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    // =========================
+    // 🔥 CONVERT URI → BITMAP
+    // =========================
+
+    private fun uriToBitmap(uri: Uri): Bitmap? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri)
+            BitmapFactory.decodeStream(inputStream)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     // =========================
@@ -104,9 +114,6 @@ class MainActivity : ComponentActivity() {
             }
     }
 
-    // =========================
-    // 🔹 CAMERA HANDLER
-    // =========================
 
     private val takePictureLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicturePreview()
@@ -159,6 +166,12 @@ class MainActivity : ComponentActivity() {
                     uri?.let {
                         galleryUriState.value = it
                         cameraImageState.value = null
+
+                        // 🔥 AUTO SCAN DARI GALERI
+                        val bitmap = uriToBitmap(it)
+                        bitmap?.let { bmp ->
+                            scanQr(bmp)
+                        } ?: showToast("Gagal memuat gambar dari galeri")
                     }
                 }
 
